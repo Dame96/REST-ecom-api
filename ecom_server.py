@@ -1,4 +1,4 @@
-from ecom_app import app, db, User, Order, Product, user_schema, product_schema, order_schema, users_schema, products_schema
+from ecom_app import app, db, User, Order, Product, user_schema, product_schema, order_schema, users_schema, products_schema, orders_schema
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
@@ -13,7 +13,6 @@ from typing import List, Optional
 def get_users():
     query = select(User)
     users = db.session.execute(query).scalars().all() 
-    print("printing user")
 
     return users_schema.jsonify(users), 200  
            
@@ -53,7 +52,7 @@ def update_user(id):
     user.name = user_data['name']
     user.email = user_data['email']
 
-    db.session.commit 
+    db.session.commit()
     return user_schema.jsonify(user), 200
 
 
@@ -75,7 +74,7 @@ def delete_user(id):
 # Product Endpoints
 # GET /products: Retrieve all products (SUCCESSFUL-200)
 @app.route('/products', methods = ['GET'])
-def get_products():
+def get_all_products():
     query = select(Product)
     products = db.session.execute(query).scalars().all() 
 
@@ -118,7 +117,7 @@ def update_product(id):
     product.product_name = product_data['product_name']
     product.price = product_data['price']
 
-    db.session.commit 
+    db.session.commit()
     return product_schema.jsonify(product), 200
 print("user has been updated!") 
 
@@ -138,8 +137,8 @@ def delete_products(id):
 #MARK: Orders
 # Order Endpoints
 # POST /orders: Create a new order (requires user ID and order date)#(Still working on this)
-@app.route('/orders/<int>:id/order_date', methods=['POST']) 
-def create_order(id, DateTime):
+@app.route('/orders/<int:id>', methods=['POST']) 
+def create_order(id):
     try:
         order_data = order_schema.load(request.json)
     except ValidationError as e:
@@ -147,21 +146,21 @@ def create_order(id, DateTime):
 
     new_order = Order(user_id=order_data['user_id'], order_date=order_data['order_date'])
     db.session.add(new_order)
-    db.session.commit(new_order)
+    db.session.commit()
     return order_schema.jsonify(new_order), 200
 
 
 # POST /orders/<order_id>/add_product/<product_id>: Add a product to an order (prevent duplicates)
-@app.route('/orders/<int:id>/add_product/<int:id>', methods=['POST'])
+@app.route('/orders/<order_id>/add_product/<product_id>', methods=['POST'])
 def add_product(order_id, product_id):
     order = db.session.get(Order, order_id)
     product = db.session.get(Product, product_id)
 
-    order.product.append(product)
+    order.products.append(product)
     db.session.commit()
 
 # # DELETE /orders/<order_id>/remove_product/<product_id>: Remove a product from an order
-@app.route('/orders/<int>id/remove_product/<int>:id', methods=['DELETE'])
+@app.route('/orders/<order_id>/remove_product/<product_id>', methods=['DELETE'])
 def remove_product(order_id, product_id):
     order = db.session.get(Order, order_id)
     product = db.session.get(Product, product_id)
@@ -174,7 +173,7 @@ def remove_product(order_id, product_id):
     return jsonify({"message": f"successfully deleted {product.product_name}"}), 200
 
 # GET /orders/user/<user_id>: Get all orders for a user
-@app.route('/order/user/<int>:id')
+@app.route('/order/user/<user_id>', methods = ['GET'])
 def get_orders(id):
     query = select(Order, id)
     orders = db.session.execute(query).scalars().all()
@@ -182,10 +181,11 @@ def get_orders(id):
 
 
 # GET /orders/<order_id>/products: Get all products for an order
-@app.route('/orders/<int>:id/products', methods=['GET'])
-def get_products(id):
-    products = db.session.get(Product, id)
-    query = select
+@app.route('/orders/<order_id>/products', methods=['GET'])
+def get_order_products(id):
+    query = select(Product, id)
+    products = db.session.execute(query).scalars().all()
+
     return products_schema.jsonify(products), 200  
 
 app.run(debug=True)

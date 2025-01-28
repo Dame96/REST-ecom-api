@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from marshmallow import fields 
 from sqlalchemy import ForeignKey, Table, String, Column, DateTime, func, create_engine, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from typing import List, Optional
@@ -34,6 +35,7 @@ order_product = Table(
     Column("product_id", ForeignKey("products.product_id", ondelete="CASCADE"),primary_key=True),
 )
 
+
 #creating user class, inherits from "Base"
 class User(Base):
     __tablename__ = "users"
@@ -44,30 +46,34 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(40), unique=True)
     
     #One to many relationship
-    orders: Mapped[List["Order"]] = relationship("Order",back_populates="users")
+    orders: Mapped[List["Order"]] = relationship("Order", back_populates="user")
+
     
 class Order(Base):
     __tablename__ = "orders"
 
     order_id: Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
-    order_date = mapped_column(DateTime, default=func.now())
+    order_date : Mapped[DateTime] = mapped_column(DateTime, default=func.now())
     user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
 
     #relationship attribute 
-    users: Mapped[List["User"]] = relationship("User",back_populates="orders")
+    # links one user to an order 
+    user: Mapped["User"] = relationship("User", back_populates="orders")
+
+    # One to many relationship
     products: Mapped[List["Product"]] = relationship(secondary=order_product, back_populates="orders")
-    
+
 class Product(Base):
-    __tablename__ = "products",
+    __tablename__ = "products"
 
     product_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     product_name: Mapped[str] = mapped_column(String(25))
     price: Mapped[float]
-
+    
+    # One product can be connected to several different orders 
     orders: Mapped[List["Order"]] = relationship(secondary=order_product, back_populates="products")
 
-
-# creating schemas 
+# creating schemas for validation of json data that comes in via request
 
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -76,6 +82,7 @@ class UserSchema(ma.SQLAlchemyAutoSchema):
 class OrderSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Order
+    user_id = fields.Integer()
 
 class ProductSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -97,6 +104,9 @@ if __name__=="_main__":
         db.create_all()
         
     app.run(debug=True)
+
+
+
 
 
 
