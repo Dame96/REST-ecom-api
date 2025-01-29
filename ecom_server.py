@@ -97,7 +97,7 @@ def create_product():
     new_product = Product(product_name=product_data['product_name'], price=product_data['price'])
     db.session.add(new_product)
     db.session.commit()
-    return user_schema.jsonify(new_product), 201
+    return product_schema.jsonify(new_product), 201
 
 
 
@@ -116,10 +116,9 @@ def update_product(id):
 
     product.product_name = product_data['product_name']
     product.price = product_data['price']
-
     db.session.commit()
-    return product_schema.jsonify(product), 200
-print("user has been updated!") 
+
+    return jsonify({"message":"Successfully Updated Product"}), 200
 
 # DELETE /products/<id>: Delete a product by ID (SUCCESSFUL-200)
 @app.route('/products/<int:id>', methods=['DELETE'])
@@ -136,7 +135,7 @@ def delete_products(id):
 
 #MARK: Orders
 # Order Endpoints
-# POST /orders: Create a new order (requires user ID and order date)#(Still working on this)
+# POST /orders: Create a new order (requires user ID and order date) (SUCCESSFUL-200)
 @app.route('/orders/<int:id>', methods=['POST']) 
 def create_order(id):
     try:
@@ -150,8 +149,8 @@ def create_order(id):
     return order_schema.jsonify(new_order), 200
 
 
-# POST /orders/<order_id>/add_product/<product_id>: Add a product to an order (prevent duplicates)
-@app.route('/orders/<order_id>/add_product/<product_id>', methods=['POST'])
+# POST /orders/<order_id>/add_product/<product_id>: Add a product to an order (SUCCESSFUL-200)
+@app.route('/orders/<int:order_id>/add_product/<int:product_id>', methods=['GET'])
 def add_product(order_id, product_id):
     order = db.session.get(Order, order_id)
     product = db.session.get(Product, product_id)
@@ -159,8 +158,11 @@ def add_product(order_id, product_id):
     order.products.append(product)
     db.session.commit()
 
-# # DELETE /orders/<order_id>/remove_product/<product_id>: Remove a product from an order
-@app.route('/orders/<order_id>/remove_product/<product_id>', methods=['DELETE'])
+    return jsonify({"message": f"successfully added {product.product_name}"}), 200
+
+
+# # DELETE /orders/<order_id>/remove_product/<product_id>: Remove a product from an order (SUCCESSFUL-200)
+@app.route('/orders/<int:order_id>/remove_product/<int:product_id>', methods=['DELETE'])
 def remove_product(order_id, product_id):
     order = db.session.get(Order, order_id)
     product = db.session.get(Product, product_id)
@@ -172,20 +174,33 @@ def remove_product(order_id, product_id):
     db.session.commit()
     return jsonify({"message": f"successfully deleted {product.product_name}"}), 200
 
-# GET /orders/user/<user_id>: Get all orders for a user
-@app.route('/order/user/<user_id>', methods = ['GET'])
+# GET /orders/user/<int:id>: Get all orders for a user (SUCCESSFUL-200)
+@app.route('/orders/user/<int:id>', methods = ['GET'])
 def get_orders(id):
-    query = select(Order, id)
-    orders = db.session.execute(query).scalars().all()
-    return order_schema.jsonify(orders), 200
+   
+   user = db.session.get(User,id)
+   if not user: 
+       return jsonify({"message": "User not Found!"})
+   user_orders = [o.order_id for o in user.orders]
 
 
-# GET /orders/<order_id>/products: Get all products for an order
-@app.route('/orders/<order_id>/products', methods=['GET'])
-def get_order_products(id):
-    query = select(Product, id)
-    products = db.session.execute(query).scalars().all()
+   return order_schema.jsonify(user_orders), 200
 
-    return products_schema.jsonify(products), 200  
+    
+# GET /orders/<order_id>/products: Get all products for an order (SUCCESSFUL-200)
+@app.route('/orders/<int:order_id>/products', methods=['GET'])
+def get_order_products(order_id):
+    order = db.session.get(Order,order_id)
+
+    if not order:
+        return jsonify({"message":"Invalid Order ID"})
+
+    products = [p.product_name for p in order.products]
+
+    return products_schema.jsonify(products), 200
+
+
+
+
 
 app.run(debug=True)
