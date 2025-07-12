@@ -17,7 +17,7 @@ CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:Dametech1!@localhost/ecommerce_api'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Base class, other classes inherit from. 
+# Defining the Base class, other classes inherit from. 
 class Base(DeclarativeBase):
     pass
 
@@ -36,7 +36,7 @@ order_product = Table(
 )
 
 
-#creating user class, inherits from "Base"
+#creating user class/table, inherits from "Base"
 class User(Base):
     __tablename__ = "users"
 
@@ -45,10 +45,10 @@ class User(Base):
     address: Mapped[str] = mapped_column(String(50))
     email: Mapped[str] = mapped_column(String(40), unique=True)
     
-    #One to many relationship
+    #One to many relationship, One user can have many orders 
     orders: Mapped[List["Order"]] = relationship("Order", back_populates="user")
 
-    
+    # creating orders class/table also inherits from "Base"
 class Order(Base):
     __tablename__ = "orders"
 
@@ -63,6 +63,7 @@ class Order(Base):
     # One to many relationship
     products: Mapped[List["Product"]] = relationship(secondary=order_product, back_populates="orders")
 
+    # creating the product table which inherits from "Base"
 class Product(Base):
     __tablename__ = "products"
 
@@ -73,7 +74,7 @@ class Product(Base):
     # One product can be connected to several different orders 
     orders: Mapped[List["Order"]] = relationship(secondary=order_product, back_populates="products")
 
-# creating schemas for validation of json data that comes in via request
+# creating schemas for validation of JSON Data that comes in via request
 
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:

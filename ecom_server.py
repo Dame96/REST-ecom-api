@@ -1,3 +1,4 @@
+# all neccessary imports 
 from ecom_app import app, db, User, Order, Product, user_schema, product_schema, order_schema, users_schema, products_schema, orders_schema
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -184,7 +185,7 @@ def get_orders(id):
    user_orders = [o.order_id for o in user.orders]
 
 
-   return order_schema.jsonify(user_orders), 200
+   return orders_schema.jsonify(user_orders), 200
 
     
 # GET /orders/<order_id>/products: Get all products for an order (SUCCESSFUL-200)
